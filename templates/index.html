@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerçek Zamanlı Duygu Tanıma</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            text-align: center;
+            color: #10b981;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .video-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .stats-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            height: 250px;
+        }
+
+        .logs-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .logs-header h2 {
+            color: #333;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-refresh {
+            background: #3b82f6;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-refresh:hover {
+            background: #2563eb;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            max-height: 400px;
+            overflow-y: auto;
+            display: block;
+        }
+
+        .logs-table thead {
+            position: sticky;
+            top: 0;
+            background: #f3f4f6;
+        }
+
+        .logs-table th,
+        .logs-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .logs-table th {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .logs-table tbody {
+            display: block;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .logs-table thead,
+        .logs-table tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .emotion-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .emotion-mutlu { background: #fef3c7; color: #92400e; }
+        .emotion-üzgün { background: #dbeafe; color: #1e40af; }
+        .emotion-kızgın { background: #fee2e2; color: #991b1b; }
+        .emotion-şaşırmış { background: #fce7f3; color: #831843; }
+        .emotion-korkmuş { background: #f3e8ff; color: #6b21a8; }
+        .emotion-iğrenmiş { background: #d1fae5; color: #065f46; }
+        .emotion-nötr { background: #f3f4f6; color: #374151; }
+
+        .score {
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎭 Gerçek Zamanlı Duygu Tanıma Sistemi</h1>
+            <div class="status">
+                <span class="live-indicator"></span>Sistem Aktif - HTTP Stream
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="video-section">
+                <h2 style="margin-bottom: 15px; color: #333;">
+                    <span class="live-indicator"></span>Canlı Kamera
+                </h2>
+                <div class="video-container">
+                    <img id="videoFeed" src="/video_feed" alt="Canlı Video">
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h2 style="margin-bottom: 15px; color: #333;">📊 İstatistikler</h2>
+                
+                <div class="stat-card">
+                    <h3>Toplam Tespit</h3>
+                    <div class="value" id="totalDetections">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>En Çok Görülen Duygu</h3>
+                    <div class="value" id="mostCommon">-</div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="emotionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <div class="logs-header">
+                <h2>📝 Tespit Geçmişi</h2>
+                <div>
+                    <button class="btn btn-refresh" onclick="loadLogs()">🔄 Yenile</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Geçmişi Temizle</button>
+                </div>
+            </div>
+            
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Tarih/Saat</th>
+                        <th style="width: 10%">Yüz #</th>
+                        <th style="width: 20%">Duygu</th>
+                        <th style="width: 15%">Güven</th>
+                        <th style="width: 40%">Konum</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #9ca3af;">
+                            Henüz tespit yapılmadı...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let emotionChart = null;
+
+        // Sayfa yüklendiğinde
+        window.onload = function() {
+            loadLogs();
+            loadStatistics();
+            
+            // Otomatik yenileme - Her 5 saniyede
+            setInterval(function() {
+                loadLogs();
+                loadStatistics();
+            }, 5000);
+        };
+
+        // Logları yükle
+        function loadLogs() {
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayLogs(data.logs);
+                    }
+                })
+                .catch(err => console.error('Log yükleme hatası:', err));
+        }
+
+        // İstatistikleri yükle
+        function loadStatistics() {
+            fetch('/api/statistics')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateStatistics(data.statistics);
+                    }
+                })
+                .catch(err => console.error('İstatistik yükleme hatası:', err));
+        }
+
+        // Logları göster
+        function displayLogs(logs) {
+            const tbody = document.getElementById('logsBody');
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #9ca3af;">
+                            Henüz tespit yapılmadı...
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = logs.reverse().map(log => `
+                <tr>
+                    <td>${log.timestamp}</td>
+                    <td>#${log.face_id}</td>
+                    <td>
+                        <span class="emotion-badge emotion-${log.emotion.toLowerCase()}">
+                            ${log.emotion}
+                        </span>
+                    </td>
+                    <td><span class="score">${(log.score * 100).toFixed(1)}%</span></td>
+                    <td>x:${log.bbox.x}, y:${log.bbox.y}, w:${log.bbox.width}, h:${log.bbox.height}</td>
+                </tr>
+            `).join('');
+        }
+
+        // İstatistikleri güncelle
+        function updateStatistics(stats) {
+            document.getElementById('totalDetections').textContent = stats.total_detections;
+            
+            if (stats.most_common) {
+                document.getElementById('mostCommon').textContent = 
+                    `${stats.most_common.emotion} (${stats.most_common.count})`;
+            }
+
+            // Grafik güncelle
+            updateChart(stats.emotion_counts);
+        }
+
+        // Grafik güncelleme
+        function updateChart(emotionCounts) {
+            const ctx = document.getElementById('emotionChart').getContext('2d');
+            
+            if (emotionChart) {
+                emotionChart.destroy();
+            }
+
+            const labels = Object.keys(emotionCounts);
+            const data = Object.values(emotionCounts);
+
+            if (labels.length === 0) {
+                return;
+            }
+
+            emotionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#fbbf24',
+                            '#60a5fa',
+                            '#f87171',
+                            '#f472b6',
+                            '#a78bfa',
+                            '#34d399',
+                            '#9ca3af'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Logları temizle
+        function clearLogs() {
+            if (confirm('Tüm tespit geçmişini silmek istediğinizden emin misiniz?')) {
+                fetch('/api/clear-logs', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadLogs();
+                        loadStatistics();
+                        alert('Geçmiş temizlendi!');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
