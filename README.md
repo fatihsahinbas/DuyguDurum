@@ -4,12 +4,12 @@ Web kameradan anlık duygu tespiti yapan AI destekli uygulama.
 
 ## Özellikler
 
-- 🎭 7 duygu durumu tespit eder (Mutlu, Üzgün, Kızgın, Şaşırmış, Korkmuş, İğrenmiş, Nötr)
-- 🎥 Gerçek zamanlı kamera görüntüsü
-- 🤖 Vision Transformer (ViT) AI modeli
-- 📊 İstatistik ve grafik gösterimi
-- 🇹🇷 Türkçe arayüz
-- 💾 Otomatik JSON loglama
+-  7 duygu durumu tespit eder (Mutlu, Üzgün, Kızgın, Şaşırmış, Korkmuş, İğrenmiş, Nötr)
+-  Gerçek zamanlı kamera görüntüsü
+-  Vision Transformer (ViT) AI modeli
+-  İstatistik ve grafik gösterimi
+-  Türkçe arayüz
+-  Otomatik JSON loglama
 
 ## Kurulum
 ```bash
