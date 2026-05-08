@@ -5,9 +5,11 @@ from datetime import datetime
 from collections import Counter
 from domain.emotion import Emotion
 
+MAX_LOG_ENTRIES = 5000  # Dosyada tutulacak maksimum kayıt sayısı
+
 class EmotionLogger:
     """Duygu durumu loglama domain service"""
-    
+
     def __init__(self, log_file: str = 'emotion_logs.json'):
         self.log_file = Path(log_file)
         self._ensure_log_file()
@@ -21,16 +23,16 @@ class EmotionLogger:
         """Duygu durumunu logla"""
         logs = self._read_logs()
         logs.append(emotion.to_dict())
-        self._write_logs(logs)
-    
+        self._write_logs(logs[-MAX_LOG_ENTRIES:])
+
     def log_emotions(self, emotions: List[Emotion]) -> None:
         """Birden fazla duygu durumunu logla"""
         if not emotions:
             return
-        
+
         logs = self._read_logs()
         logs.extend([e.to_dict() for e in emotions])
-        self._write_logs(logs)
+        self._write_logs(logs[-MAX_LOG_ENTRIES:])
     
     def get_all_logs(self) -> List[Dict[str, Any]]:
         """Tüm logları getir"""

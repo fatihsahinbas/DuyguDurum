@@ -14,7 +14,12 @@ class CameraStream:
         self.frame_lock = Lock()
         self.current_frame: Optional[np.ndarray] = None
         self.is_running = False
-        
+
+        # Haar Cascade bir kere yükle
+        self.face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        )
+
         # Türkçe font için PIL kullanacağız
         try:
             # Windows için
@@ -85,19 +90,14 @@ class CameraStream:
     
     def detect_faces(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """Frame'de yüz tespiti yap"""
-        # Haar Cascade ile yüz tespiti
-        face_cascade = cv2.CascadeClassifier(
-            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-        )
-        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(
+        faces = self.face_cascade.detectMultiScale(
             gray,
             scaleFactor=1.1,
             minNeighbors=5,
             minSize=(30, 30)
         )
-        
+
         return [tuple(face) for face in faces]
     
     def extract_face_roi(self, frame: np.ndarray, bbox: Tuple[int, int, int, int]) -> np.ndarray:

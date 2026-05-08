@@ -224,6 +224,29 @@
             50% { opacity: 0.5; }
         }
 
+        .camera-error {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1f2937;
+            color: #9ca3af;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            min-height: 240px;
+        }
+
+        .camera-error .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .camera-error h3 {
+            color: #f87171;
+            margin-bottom: 8px;
+        }
+
         @media (max-width: 1024px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -246,7 +269,12 @@
                     <span class="live-indicator"></span>Canlı Kamera
                 </h2>
                 <div class="video-container">
-                    <img id="videoFeed" src="/video_feed" alt="Canlı Video">
+                    <img id="videoFeed" src="/video_feed" alt="Canlı Video" onerror="showCameraError()">
+                    <div class="camera-error" id="cameraError">
+                        <div class="error-icon">📷</div>
+                        <h3>Kamera Bulunamadı</h3>
+                        <p>Lütfen bir kamera bağladığınızdan emin olun ve sayfayı yenileyin.</p>
+                    </div>
                 </div>
             </div>
 
@@ -302,16 +330,31 @@
     <script>
         let emotionChart = null;
 
+        function showCameraError() {
+            document.getElementById('videoFeed').style.display = 'none';
+            document.getElementById('cameraError').style.display = 'flex';
+        }
+
+        function checkCameraStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.camera_available) showCameraError();
+                })
+                .catch(() => {});
+        }
+
         // Sayfa yüklendiğinde
         window.onload = function() {
+            checkCameraStatus();
             loadLogs();
             loadStatistics();
-            
-            // Otomatik yenileme - Her 5 saniyede
+
+            // Otomatik yenileme - Her 3 saniyede (log intervali ile eşleşsin)
             setInterval(function() {
                 loadLogs();
                 loadStatistics();
-            }, 5000);
+            }, 3000);
         };
 
         // Logları yükle
@@ -383,46 +426,36 @@
 
         // Grafik güncelleme
         function updateChart(emotionCounts) {
-            const ctx = document.getElementById('emotionChart').getContext('2d');
-            
-            if (emotionChart) {
-                emotionChart.destroy();
-            }
-
             const labels = Object.keys(emotionCounts);
             const data = Object.values(emotionCounts);
 
-            if (labels.length === 0) {
-                return;
-            }
+            if (labels.length === 0) return;
 
-            emotionChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: [
-                            '#fbbf24',
-                            '#60a5fa',
-                            '#f87171',
-                            '#f472b6',
-                            '#a78bfa',
-                            '#34d399',
-                            '#9ca3af'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
+            const colors = [
+                '#fbbf24', '#60a5fa', '#f87171', '#f472b6',
+                '#a78bfa', '#34d399', '#9ca3af'
+            ];
+
+            if (emotionChart) {
+                emotionChart.data.labels = labels;
+                emotionChart.data.datasets[0].data = data;
+                emotionChart.update('none');
+            } else {
+                const ctx = document.getElementById('emotionChart').getContext('2d');
+                emotionChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{ data: data, backgroundColor: colors }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 400 },
+                        plugins: { legend: { position: 'bottom' } }
                     }
-                }
-            });
+                });
+            }
         }
 
         // Logları temizle
