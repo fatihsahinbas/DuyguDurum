@@ -198,12 +198,18 @@ if __name__ == '__main__':
         
         print("✓ Kamera başlatıldı")
         print("✓ ANLIK TESPIT MODU AKTIF")
-        print("\nTarayıcınızda http://localhost:5000 adresini açın")
+        print("\nTarayıcınızda http://localhost:8000 adresini açın")
         print("\nDurdurmak için Ctrl+C")
         print("=" * 50)
         print()
         
-        app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
+        import webbrowser
+        import threading
+
+        # app.run'dan hemen önce:
+        threading.Timer(1.5, lambda: webbrowser.open("http://localhost:8000")).start()  
+        
+        app.run(debug=False, host='0.0.0.0', port=8000, threaded=True)
         
     except KeyboardInterrupt:
         print("\n\nSistem kapatılıyor...")
